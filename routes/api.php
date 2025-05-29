@@ -34,7 +34,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/social-accounts', [SocialAccountController::class, 'index']);
     Route::post('/social-accounts', [SocialAccountController::class, 'store']);
     Route::get('/social-accounts/{socialAccount}', [SocialAccountController::class, 'show']);
-    Route::put('/social-accounts/{socialAccount}', [SocialAccountController::class, 'update']);
     Route::delete('/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
 
     // Tags routes
