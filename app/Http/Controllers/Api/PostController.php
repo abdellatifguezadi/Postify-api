@@ -18,8 +18,7 @@ class PostController extends Controller
 
     public function index(Request $request)
     {
-        // Check and update scheduled posts before returning the list
-        $this->checkAndUpdateScheduledPosts();
+
 
         $query = Post::with(['medias', 'socialAccounts', 'tags'])
             ->where('user_id', Auth::id());
@@ -59,39 +58,49 @@ class PostController extends Controller
             'tags.*' => 'exists:tags,id'
         ]);
 
-        $post = new Post();
-        $post->content = $request->content;
-        $post->user_id = Auth::id();
-        $post->status = $request->status;
-        $post->scheduled_date = $request->scheduled_date;
-        $post->scheduled_time = $request->scheduled_time;
-        $post->save();
+        $posts = [];
+        $mediaFiles = [];
 
-        // Attach social accounts
-        $post->socialAccounts()->attach($request->social_accounts);
-
-        // Attach tags
-        if ($request->has('tags')) {
-            $post->tags()->attach($request->tags);
-        }
-
+        // Upload media files first if any
         if ($request->hasFile('media')) {
             foreach ($request->file('media') as $file) {
                 $path = $file->store('posts/media', 'public');
-                
-                // Get the main type from the MIME type (e.g., 'image' from 'image/jpeg')
                 $type = explode('/', $file->getMimeType())[0];
                 
-                $media = new Media([
+                $mediaFiles[] = new Media([
                     'path' => $path,
                     'type' => $type
                 ]);
-                
-                $post->medias()->save($media);
             }
         }
 
-        return response()->json($post->load(['medias', 'socialAccounts', 'tags']));
+        // Create a post for each social account
+        foreach ($request->social_accounts as $socialAccountId) {
+            $post = new Post();
+            $post->content = $request->content;
+            $post->user_id = Auth::id();
+            $post->social_account_id = $socialAccountId;
+            $post->status = $request->status;
+            $post->scheduled_date = $request->scheduled_date;
+            $post->scheduled_time = $request->scheduled_time;
+            $post->save();
+
+            // Attach tags if provided
+            if ($request->has('tags')) {
+                $post->tags()->attach($request->tags);
+            }
+
+            // Attach the same media to each post
+            foreach ($mediaFiles as $media) {
+                $postMedia = clone $media;
+                $post->medias()->save($postMedia);
+            }
+
+            // Add to array for response
+            $posts[] = $post->load(['medias', 'tags']);
+        }
+
+        return response()->json($posts, 201);
     }
 
     public function update(Request $request, Post $post)
@@ -135,8 +144,6 @@ class PostController extends Controller
             // Add new media
             foreach ($request->file('media') as $file) {
                 $path = $file->store('posts/media', 'public');
-                
-                // Get the main type from the MIME type (e.g., 'image' from 'image/jpeg')
                 $type = explode('/', $file->getMimeType())[0];
                 
                 $media = new Media([
@@ -265,24 +272,5 @@ class PostController extends Controller
         return response()->json($newPost->load(['medias', 'socialAccounts', 'tags']));
     }
 
-    private function checkAndUpdateScheduledPosts()
-    {
-        $now = now();
-        $currentDate = $now->format('Y-m-d');
-        $currentTime = $now->format('H:i');
 
-        // Update all queued posts that have reached their scheduled time
-        Post::where('status', 'queue')
-            ->where(function($query) use ($currentDate, $currentTime) {
-                $query->where('scheduled_date', '<', $currentDate)
-                    ->orWhere(function($q) use ($currentDate, $currentTime) {
-                        $q->where('scheduled_date', $currentDate)
-                           ->where('scheduled_time', '<=', $currentTime);
-                    });
-            })
-            ->update([
-                'status' => 'sent',
-                'published_at' => now()
-            ]);
-    }
 } 

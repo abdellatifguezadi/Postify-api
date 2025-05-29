@@ -4,14 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Post extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id',
         'content',
+        'user_id',
+        'social_account_id',
         'status',
         'scheduled_date',
         'scheduled_time',
@@ -19,29 +23,40 @@ class Post extends Model
     ];
 
     protected $casts = [
-        'published_at' => 'datetime',
-        'scheduled_date' => 'date'
+        'scheduled_date' => 'date',
+        'published_at' => 'datetime'
     ];
 
-    protected $with = ['medias', 'socialAccounts', 'tags'];
+    protected $with = ['medias', 'socialAccount', 'tags'];
 
-    public function user()
+    /**
+     * Get the user that owns the post
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function medias()
+    /**
+     * Get the social account this post belongs to
+     */
+    public function socialAccount(): BelongsTo
+    {
+        return $this->belongsTo(SocialAccount::class);
+    }
+
+    /**
+     * Get the media files for this post
+     */
+    public function medias(): HasMany
     {
         return $this->hasMany(Media::class);
     }
 
-    public function socialAccounts()
-    {
-        return $this->belongsToMany(SocialAccount::class)
-            ->withTimestamps();
-    }
-
-    public function tags()
+    /**
+     * Get the tags associated with the post
+     */
+    public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
     }
@@ -65,12 +80,5 @@ class Post extends Model
     public function scopeScheduledBetween($query, $start, $end)
     {
         return $query->whereBetween('scheduled_date', [$start, $end]);
-    }
-
-    public function scopeWithTag($query, $tagName)
-    {
-        return $query->whereHas('tags', function($q) use ($tagName) {
-            $q->where('name', $tagName);
-        });
     }
 } 

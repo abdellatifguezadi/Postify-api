@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SocialAccount extends Model
 {
@@ -22,14 +24,19 @@ class SocialAccount extends Model
         'access_token'
     ];
 
-    public function user()
+    /**
+     * Get the user that owns the social account
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function posts()
+    /**
+     * Get all posts for this social account
+     */
+    public function posts(): HasMany
     {
-        return $this->belongsToMany(Post::class)
-            ->withTimestamps();
+        return $this->hasMany(Post::class);
     }
 } 

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('social_account_id')->constrained()->onDelete('cascade');
             $table->text('content');
             $table->enum('status', ['draft', 'queue', 'sent'])->default('draft');
             $table->date('scheduled_date')->nullable();
