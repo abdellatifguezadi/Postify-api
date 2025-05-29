@@ -20,7 +20,7 @@ class SocialAccountController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'platform' => 'required|string|in:facebook,instagram,tiktok',
+            'platform' => 'required|string',
             'account_name' => 'required|string',
             'access_token' => 'required|string',
             'account_details' => 'nullable|json'
@@ -42,26 +42,6 @@ class SocialAccountController extends Controller
         }
 
         return response()->json([
-            'social_account' => $socialAccount
-        ]);
-    }
-
-    public function update(Request $request, SocialAccount $socialAccount)
-    {
-        if (Auth::id() !== $socialAccount->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'account_name' => 'sometimes|string',
-            'access_token' => 'sometimes|string',
-            'account_details' => 'nullable|json'
-        ]);
-
-        $socialAccount->update($validated);
-
-        return response()->json([
-            'message' => 'Social account updated successfully',
             'social_account' => $socialAccount
         ]);
     }
