@@ -43,4 +43,28 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Get all posts for the user.
+     */
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Get all social accounts for the user.
+     */
+    public function socialAccounts()
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    /**
+     * Get all tags created by the user.
+     */
+    public function tags()
+    {
+        return $this->hasMany(Tag::class);
+    }
 }
