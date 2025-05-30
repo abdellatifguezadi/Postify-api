@@ -24,13 +24,11 @@ class SocialAccount extends Model
         'access_token'
     ];
 
-    /**
-     * Get the user that owns the social account
-     */
-    public function user(): BelongsTo
+    public function profile(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Profile::class);
     }
+
 
     /**
      * Get all posts for this social account
@@ -39,4 +37,4 @@ class SocialAccount extends Model
     {
         return $this->hasMany(Post::class);
     }
-} 
+}

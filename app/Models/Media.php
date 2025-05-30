@@ -32,4 +32,4 @@ class Media extends Model
     }
 
     protected $appends = ['url'];
-} 
+}
