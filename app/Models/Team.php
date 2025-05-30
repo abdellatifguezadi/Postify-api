@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Team extends Model
 {
+    use HasFactory;
     protected $fillable = ['name'];
 
 
@@ -18,5 +20,10 @@ class Team extends Model
     {
         return $this->belongsToMany(User::class, 'team_users')
             ->withTimestamps();
+    }
+
+    public function profiles()
+    {
+        return $this->belongsToMany(Profile::class);
     }
 }

@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->foreignId('task_column_id')
-                ->constrained('task_columns')
+        Schema::create('team_profile', function (Blueprint $table) {
+            $table->foreignId('team_id')
+                ->constrained('teams')
                 ->onDelete('cascade');
-            $table->timestamp('due_date')->nullable();
-            $table->timestamps();
+            $table->foreignId('profile_id')
+                ->constrained('profiles')
+                ->onDelete('cascade');
+            $table->primary(['team_id', 'profile_id']);
         });
     }
 
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tasks');
+        Schema::dropIfExists('team_profile');
     }
 };

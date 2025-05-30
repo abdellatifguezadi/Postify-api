@@ -17,7 +17,7 @@ class Task extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(User::class);
     }
     /**
      * Get the task column that the task belongs to.

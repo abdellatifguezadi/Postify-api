@@ -19,4 +19,9 @@ class TaskColumn extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function profiles()
+    {
+        return $this->belongsTo(Profile::class);
+    }
 }

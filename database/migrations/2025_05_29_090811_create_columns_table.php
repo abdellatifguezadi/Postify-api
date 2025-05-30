@@ -11,22 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('teams', function (Blueprint $table) {
+        Schema::create('columns', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
-            $table->string('logo')->nullable();
-            $table->string('slug')->unique();
+            $table->string('name');
+            $table->foreignId('profile_id')->constrained('profiles')->onDelete('cascade');
             $table->timestamps();
         });
     }
-
-
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('teams');
+        Schema::dropIfExists('columns');
     }
 };
