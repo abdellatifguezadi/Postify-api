@@ -9,9 +9,9 @@ class Profile extends Model
     protected $fillable = ['name', 'bio', 'avatar'];
 
 
-    public function teams()
+    public function team()
     {
-        return $this->belongsToMany(Team::class, 'team_profiles')
+        return $this->belongsTo(Team::class)
             ->withTimestamps();
     }
 
