@@ -18,9 +18,7 @@ class PostController extends Controller
 
     public function index(Request $request)
     {
-
-
-        $query = Post::with(['medias', 'socialAccounts', 'tags'])
+        $query = Post::with(['medias', 'socialAccount', 'tags'])
             ->where('user_id', Auth::id());
 
         if ($request->status) {
@@ -32,13 +30,13 @@ class PostController extends Controller
         }
 
         if ($request->social_account_id) {
-            $query->whereHas('socialAccounts', function($q) use ($request) {
-                $q->where('social_accounts.id', $request->social_account_id);
-            });
+            $query->where('social_account_id', $request->social_account_id);
         }
 
         if ($request->tag) {
-            $query->withTag($request->tag);
+            $query->whereHas('tags', function($q) use ($request) {
+                $q->where('tags.id', $request->tag);
+            });
         }
 
         return response()->json($query->latest()->paginate(15));
@@ -125,10 +123,8 @@ class PostController extends Controller
         $post->scheduled_date = $request->scheduled_date;
         $post->scheduled_time = $request->scheduled_time;
         $post->status = $request->status;
+        $post->social_account_id = $request->social_accounts[0];  // On prend le premier compte social
         $post->save();
-
-        // Update social accounts
-        $post->socialAccounts()->sync($request->social_accounts);
 
         // Update tags
         $post->tags()->sync($request->tags ?? []);
@@ -155,7 +151,7 @@ class PostController extends Controller
             }
         }
 
-        return response()->json($post->load(['medias', 'socialAccounts', 'tags']));
+        return response()->json($post->load(['medias', 'socialAccount', 'tags']));
     }
 
     public function show(Post $post)
@@ -163,7 +159,7 @@ class PostController extends Controller
         if (Auth::id() !== $post->user_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        return response()->json($post->load(['medias', 'socialAccounts', 'tags']));
+        return response()->json($post->load(['medias', 'socialAccount', 'tags']));
     }
 
     public function destroy(Post $post)
