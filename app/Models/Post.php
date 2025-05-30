@@ -30,14 +30,6 @@ class Post extends Model
     protected $with = ['medias', 'socialAccount', 'tags'];
 
     /**
-     * Get the user that owns the post
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    /**
      * Get the social account this post belongs to
      */
     public function socialAccount(): BelongsTo

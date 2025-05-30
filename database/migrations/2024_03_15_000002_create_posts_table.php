@@ -10,10 +10,9 @@ return new class extends Migration
     {
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('social_account_id')->constrained()->onDelete('cascade');
+            $table->foreignId('social_account_id')->constrained('social_accounts')->onDelete('cascade');
             $table->text('content');
-            $table->enum('status', ['draft', 'queue', 'sent'])->default('draft');
+            $table->enum('status', ['draft', 'queued', 'sent'])->default('draft');
             $table->date('scheduled_date')->nullable();
             $table->string('scheduled_time')->nullable();
             $table->timestamp('published_at')->nullable();
@@ -26,4 +25,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('posts');
     }
-}; 
+};

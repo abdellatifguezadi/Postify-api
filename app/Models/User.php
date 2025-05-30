@@ -45,26 +45,19 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get all posts for the user.
+     * Get the tasks for the user.
      */
-    public function posts()
+    public function tasks()
     {
-        return $this->hasMany(Post::class);
+        return $this->belongsToMany(Task::class);
     }
-
     /**
-     * Get all social accounts for the user.
+     * Get the teams for the user.
      */
-    public function socialAccounts()
-    {
-        return $this->hasMany(SocialAccount::class);
-    }
 
-    /**
-     * Get all tags created by the user.
-     */
-    public function tags()
+    public function teams()
     {
-        return $this->hasMany(Tag::class);
+        return $this->belongsToMany(Team::class, 'teams')
+            ->withTimestamps();
     }
 }
