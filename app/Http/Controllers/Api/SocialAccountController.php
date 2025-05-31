@@ -39,16 +39,7 @@ class SocialAccountController extends Controller
 
     public function show(Profile $profile, $socialAccountId)
     {
-        $socialAccount = SocialAccount::where('profile_id', $profile->id)
-            ->where('id', $socialAccountId)
-            ->first();
-
-        if (!$socialAccount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Social account not found for this profile'
-            ], 404);
-        }
+        $socialAccount = $profile->socialAccounts()->findOrFail($socialAccountId);
 
         return response()->json([
             'status' => 'success',
@@ -58,16 +49,7 @@ class SocialAccountController extends Controller
 
     public function update(Profile $profile, $socialAccountId, Request $request)
     {
-        $socialAccount = SocialAccount::where('profile_id', $profile->id)
-            ->where('id', $socialAccountId)
-            ->first();
-
-        if (!$socialAccount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Social account not found for this profile'
-            ], 404);
-        }
+        $socialAccount = $profile->socialAccounts()->findOrFail($socialAccountId);
 
         $validated = $request->validate([
             'platform' => 'sometimes|required|string|max:50',
@@ -87,17 +69,8 @@ class SocialAccountController extends Controller
 
     public function destroy(Profile $profile, $socialAccountId)
     {
-        $socialAccount = SocialAccount::where('profile_id', $profile->id)
-            ->where('id', $socialAccountId)
-            ->first();
-
-        if (!$socialAccount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Social account not found for this profile'
-            ], 404);
-        }
-
+        $socialAccount = $profile->socialAccounts()->findOrFail($socialAccountId);
+        
         $socialAccount->delete();
         
         return response()->json([
