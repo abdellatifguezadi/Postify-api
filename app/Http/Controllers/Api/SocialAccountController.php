@@ -22,7 +22,7 @@ class SocialAccountController extends Controller
     public function store(Profile $profile, Request $request)
     {
         $validated = $request->validate([
-            'platform' => 'required|string|max:50',
+            'platform' => 'required|string|in:facebook,twitter,instagram,linkedin,tiktok,youtube,pinterest,snapchat',
             'account_name' => 'required|string',
             'access_token' => 'required|string',
             'account_details' => 'nullable|json'
