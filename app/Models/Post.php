@@ -14,46 +14,46 @@ class Post extends Model
 
     protected $fillable = [
         'content',
-        'user_id',
+        'profile_id',
         'social_account_id',
         'status',
-        'scheduled_date',
         'scheduled_time',
         'published_at'
     ];
 
     protected $casts = [
-        'scheduled_date' => 'date',
-        'published_at' => 'datetime'
+        'scheduled_time' => 'datetime',
+        'published_at' => 'datetime',
+        'status' => 'string'
     ];
 
     protected $with = ['medias', 'socialAccount', 'tags'];
 
-    /**
-     * Get the social account this post belongs to
-     */
+
+    public function profile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class);
+    }
+
+
     public function socialAccount(): BelongsTo
     {
         return $this->belongsTo(SocialAccount::class);
     }
 
-    /**
-     * Get the media files for this post
-     */
+
     public function medias(): HasMany
     {
         return $this->hasMany(Media::class);
     }
 
-    /**
-     * Get the tags associated with the post
-     */
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
     }
 
-    // Scopes utiles pour filtrer les posts
+
     public function scopeDrafts($query)
     {
         return $query->where('status', 'draft');
@@ -71,6 +71,6 @@ class Post extends Model
 
     public function scopeScheduledBetween($query, $start, $end)
     {
-        return $query->whereBetween('scheduled_date', [$start, $end]);
+        return $query->whereBetween('scheduled_time', [$start, $end]);
     }
 } 
