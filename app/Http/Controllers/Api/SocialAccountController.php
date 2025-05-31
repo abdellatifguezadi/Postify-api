@@ -4,57 +4,104 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
+use App\Models\Profile;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class SocialAccountController extends Controller
 {
-    public function index()
+    public function index(Profile $profile)
     {
-        $accounts = SocialAccount::where('user_id', Auth::id())->get();
+        $accounts = $profile->socialAccounts;
+        
         return response()->json([
-            'social_accounts' => $accounts
+            'status' => 'success',
+            'data' => $accounts
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Profile $profile, Request $request)
     {
         $validated = $request->validate([
-            'platform' => 'required|string',
+            'platform' => 'required|string|max:50',
             'account_name' => 'required|string',
             'access_token' => 'required|string',
             'account_details' => 'nullable|json'
         ]);
-
-        $validated['user_id'] = Auth::id();
-        $socialAccount = SocialAccount::create($validated);
+        
+        $socialAccount = $profile->socialAccounts()->create($validated);
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Social account created successfully',
-            'social_account' => $socialAccount
+            'data' => $socialAccount
         ], 201);
     }
 
-    public function show(SocialAccount $socialAccount)
+    public function show(Profile $profile, $socialAccountId)
     {
-        if (Auth::id() !== $socialAccount->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $socialAccount = SocialAccount::where('profile_id', $profile->id)
+            ->where('id', $socialAccountId)
+            ->first();
+
+        if (!$socialAccount) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Social account not found for this profile'
+            ], 404);
         }
 
         return response()->json([
-            'social_account' => $socialAccount
+            'status' => 'success',
+            'data' => $socialAccount
         ]);
     }
 
-    public function destroy(SocialAccount $socialAccount)
+    public function update(Profile $profile, $socialAccountId, Request $request)
     {
-        if (Auth::id() !== $socialAccount->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $socialAccount = SocialAccount::where('profile_id', $profile->id)
+            ->where('id', $socialAccountId)
+            ->first();
+
+        if (!$socialAccount) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Social account not found for this profile'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'platform' => 'sometimes|required|string|max:50',
+            'account_name' => 'sometimes|required|string',
+            'access_token' => 'sometimes|required|string',
+            'account_details' => 'nullable|json'
+        ]);
+
+        $socialAccount->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Social account updated successfully',
+            'data' => $socialAccount
+        ]);
+    }
+
+    public function destroy(Profile $profile, $socialAccountId)
+    {
+        $socialAccount = SocialAccount::where('profile_id', $profile->id)
+            ->where('id', $socialAccountId)
+            ->first();
+
+        if (!$socialAccount) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Social account not found for this profile'
+            ], 404);
         }
 
         $socialAccount->delete();
         
         return response()->json([
+            'status' => 'success',
             'message' => 'Social account deleted successfully'
         ]);
     }

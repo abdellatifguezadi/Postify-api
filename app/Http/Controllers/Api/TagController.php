@@ -5,68 +5,63 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class TagController extends Controller
 {
     public function index()
     {
-        $tags = Tag::where('user_id', Auth::id())
-            ->withCount('posts')
-            ->get();
-        
-        return response()->json($tags);
+        $tags = Tag::all();
+        return response()->json([
+            'status' => 'success',
+            'data' => $tags
+        ]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:50|unique:tags,name,NULL,id,user_id,' . Auth::id(),
+            'name' => 'required|string|max:50|unique:tags'
         ]);
 
-        $tag = new Tag([
-            'name' => $request->name,
-            'user_id' => Auth::id()
-        ]);
-        
-        $tag->save();
+        $tag = Tag::create($request->only('name'));
 
-        return response()->json($tag, 201);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tag created successfully',
+            'data' => $tag
+        ], 201);
     }
 
     public function show(Tag $tag)
     {
-        if (Auth::id() !== $tag->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        
-        return response()->json($tag->load('posts'));
+        return response()->json([
+            'status' => 'success',
+            'data' => $tag
+        ]);
     }
 
     public function update(Request $request, Tag $tag)
     {
-        if (Auth::id() !== $tag->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $request->validate([
-            'name' => 'required|string|max:50|unique:tags,name,' . $tag->id . ',id,user_id,' . Auth::id(),
+            'name' => 'required|string|max:50|unique:tags,name,' . $tag->id
         ]);
 
-        $tag->name = $request->name;
-        $tag->save();
+        $tag->update($request->only('name'));
 
-        return response()->json($tag);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tag updated successfully',
+            'data' => $tag
+        ]);
     }
 
     public function destroy(Tag $tag)
     {
-        if (Auth::id() !== $tag->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        
         $tag->delete();
         
-        return response()->json(['message' => 'Tag deleted successfully']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tag deleted successfully'
+        ]);
     }
-} 
+}
