@@ -24,6 +24,12 @@ class DatabaseSeeder extends Seeder
             'email' => 'gaxown@outlook.com',
             'password' => bcrypt('password123'),
         ]);
+        //create more users with fake email and password
+        User::factory()->count(10)->create();
+
+
+
+
 
         Team::create([
             'name' => 'xXx',

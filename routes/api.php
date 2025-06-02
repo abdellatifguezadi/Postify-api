@@ -62,4 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::put('/tasks/{task}/status', [TaskController::class, 'changeStatus']);
+    Route::put('/tasks/{task}/assigntoUsers/', [TaskController::class, 'assignToUsers']);
+    Route::put('/tasks/{task}/unassignFromUsers/', [TaskController::class, 'unassignFromUsers']);
+    Route::get('/tasks/{task}/getUsers', [TaskController::class, 'getUsers']);
+    Route::get('/tasks/{task}/getTaskColumn', [TaskController::class, 'getTaskColumn']);
 });
