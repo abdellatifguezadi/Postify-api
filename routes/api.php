@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\TaskColumnController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TeamController;
 
@@ -78,4 +80,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/invites/{invite}/accept', [InviteController::class, 'acceptInvite']);
     Route::post('/invites/{invite}/reject', [InviteController::class, 'rejectInvite']);
 
+    Route::put('/tasks/{task}/status', [TaskController::class, 'changeStatus']);
+    Route::put('/tasks/{task}/assigntoUsers/', [TaskController::class, 'assignToUsers']);
+    Route::put('/tasks/{task}/unassignFromUsers/', [TaskController::class, 'unassignFromUsers']);
+    Route::get('/tasks/{task}/getUsers', [TaskController::class, 'getUsers']);
+    Route::get('/tasks/{task}/getTaskColumn', [TaskController::class, 'getTaskColumn']);
+
+
+    // Profile routes
+    Route::get('/teams/{team}/profiles', [ProfileController::class, 'index']);
+    Route::post('/teams/{team}/profiles/', [ProfileController::class, 'store']);
+    Route::get('/profiles/{profile}', [ProfileController::class, 'show']);
+    Route::put('/profiles/{profile}', [ProfileController::class, 'update']);
+    Route::delete('/profiles/{profile}', [ProfileController::class, 'destroy']);
+    Route::get('/profiles/{profile}/social-accounts', [ProfileController::class, 'getSocialAccounts']);
+    Route::get('/profiles/{profile}/columns', [ProfileController::class, 'getColumns']);
+
+    // Task Columns routes
+    // Route::get('/profiles/{profile}/columns', [TaskColumnController::class, 'index']);
+    Route::post('/profiles/{profile}/columns', [TaskColumnController::class, 'store']);
+    Route::get('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'show']);
+    Route::put('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'update']);
+    Route::delete('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'destroy']);
 });

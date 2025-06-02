@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('social_accounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
-            $table->enum('platform', ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok', 'youtube', 'pinterest' , 'threads']); 
+            $table->enum('platform', ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok', 'youtube', 'pinterest', 'threads']);
             $table->string('account_name');
             $table->text('access_token');
             $table->timestamps();
