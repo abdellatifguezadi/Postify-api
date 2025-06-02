@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TagController;
-
+use App\Http\Controllers\Api\TaskController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/posts/{post}', [PostController::class, 'show']);
     Route::put('/posts/{post}', [PostController::class, 'update']);
     Route::delete('/posts/{post}', [PostController::class, 'destroy']);
-    
+
     // Post status management routes
     Route::put('/posts/{post}/status', [PostController::class, 'changeStatus']);
     Route::put('/posts/{post}/schedule', [PostController::class, 'updateSchedule']);
@@ -42,6 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tags/{tag}', [TagController::class, 'show']);
     Route::put('/tags/{tag}', [TagController::class, 'update']);
     Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
-}); 
 
-
+    // Tasks routes
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+});
