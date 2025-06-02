@@ -14,12 +14,11 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    // Auth routes
+
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // Posts routes
-    Route::get('/posts', [PostController::class, 'index']);
+    Route::get('/social-accounts/{socialAccount}/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
     Route::get('/posts/{post}', [PostController::class, 'show']);
     Route::put('/posts/{post}', [PostController::class, 'update']);
@@ -37,6 +36,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
 
     // Tags routes
+    Route::get('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'show']);
+    Route::put('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'update']);
+    Route::delete('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'destroy']);
+
+    Route::put('/social-accounts/{socialAccount}/posts/{post}/status', [PostController::class, 'changeStatus']);
+    Route::put('/social-accounts/{socialAccount}/posts/{post}/schedule', [PostController::class, 'updateSchedule']);
+    Route::post('/social-accounts/{socialAccount}/posts/{post}/duplicate', [PostController::class, 'duplicate']);
+
+    Route::get('/profiles/{profile}/social-accounts', [SocialAccountController::class, 'index']);
+    Route::post('/profiles/{profile}/social-accounts', [SocialAccountController::class, 'store']);
+    Route::get('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'show']);
+    Route::put('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'update']);
+    Route::delete('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
+
     Route::get('/tags', [TagController::class, 'index']);
     Route::post('/tags', [TagController::class, 'store']);
     Route::get('/tags/{tag}', [TagController::class, 'show']);
