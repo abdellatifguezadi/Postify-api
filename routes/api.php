@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TagController;
-
+use App\Http\Controllers\Api\TeamController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -39,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tags/{tag}', [TagController::class, 'show']);
     Route::put('/tags/{tag}', [TagController::class, 'update']);
     Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
+
+    Route::get('/teams', [TeamController::class, 'index']);
 }); 
 
 

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('social_accounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
-            $table->string('platform'); // facebook, instagram, tiktok
+            $table->string('platform'); 
             $table->string('account_name');
             $table->text('access_token');
             $table->json('account_details')->nullable();
