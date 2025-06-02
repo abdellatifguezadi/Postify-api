@@ -3,12 +3,14 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TaskColumnController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TeamController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -64,6 +66,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+
+
+    // Teams routes
+    Route::get('/teams', [TeamController::class, 'index']);
+    Route::post('/teams', [TeamController::class, 'store']);
+    Route::get('/teams/{team}', [TeamController::class, 'show']); 
+    Route::put('/teams/{team}', [TeamController::class, 'update']);
+    
+    // Invites routes
+    Route::get('/invites', [InviteController::class, 'index']);
+    Route::post('/teams/{team}/invite', [InviteController::class, 'inviteUser']);
+    Route::post('/invites/{invite}/accept', [InviteController::class, 'acceptInvite']);
+    Route::post('/invites/{invite}/reject', [InviteController::class, 'rejectInvite']);
+
     Route::put('/tasks/{task}/status', [TaskController::class, 'changeStatus']);
     Route::put('/tasks/{task}/assigntoUsers/', [TaskController::class, 'assignToUsers']);
     Route::put('/tasks/{task}/unassignFromUsers/', [TaskController::class, 'unassignFromUsers']);

@@ -22,10 +22,9 @@ class SocialAccountController extends Controller
     public function store(Profile $profile, Request $request)
     {
         $validated = $request->validate([
-            'platform' => 'required|string|in:facebook,twitter,instagram,linkedin,tiktok,youtube,pinterest,snapchat',
+            'platform' => 'required|string',
             'account_name' => 'required|string',
-            'access_token' => 'required|string',
-            'account_details' => 'nullable|json'
+            'access_token' => 'required|string'
         ]);
         
         $socialAccount = $profile->socialAccounts()->create($validated);
@@ -52,10 +51,9 @@ class SocialAccountController extends Controller
         $socialAccount = $profile->socialAccounts()->findOrFail($socialAccountId);
 
         $validated = $request->validate([
-            'platform' => 'sometimes|required|string|max:50',
+            'platform' => 'sometimes|required|string',
             'account_name' => 'sometimes|required|string',
-            'access_token' => 'sometimes|required|string',
-            'account_details' => 'nullable|json'
+            'access_token' => 'sometimes|required|string'
         ]);
 
         $socialAccount->update($validated);
