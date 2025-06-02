@@ -26,7 +26,8 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'user_id' => 'required|exists:users,id',
+            'task_column_id' => 'required|exists:task_columns,id',
+            'due_date' => 'nullable|date',
         ]);
 
         $task = Task::create($request->all());
@@ -50,7 +51,6 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'user_id' => 'required|exists:users,id',
             'task_column_id' => 'required|exists:task_columns,id',
             'due_date' => 'nullable|date',
         ]);
@@ -67,6 +67,29 @@ class TaskController extends Controller
     {
         $task->delete();
 
-        return response()->json(null, 204);
+        return response()->json('Deleted task successfully ', 204);
+    }
+
+    public function changeStatus(Request $request, Task $task)
+    {
+        $request->validate([
+            'task_column_id' => 'required|exists:task_columns,id',
+        ]);
+
+        $task->task_column_id = $request->task_column_id;
+        $task->save();
+
+        return response()->json($task);
+    }
+
+    public function assignUser(Request $request, Task $task)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $task->user()->syncWithoutDetaching([$request->user_id]);
+
+        return response()->json($task->load('user'));
     }
 }
