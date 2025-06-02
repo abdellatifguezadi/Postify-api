@@ -15,7 +15,7 @@ class Task extends Model
     /**
      * Get the user that owns the task.
      */
-    public function user()
+    public function users()
     {
         return $this->belongsToMany(User::class);
     }

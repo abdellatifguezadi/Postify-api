@@ -13,7 +13,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::with('user')
+        $tasks = Task::with('users')
             ->orderBy('created_at', 'desc')
             ->get();
         return response()->json($tasks);
@@ -40,7 +40,7 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        return response()->json($task->load('user', 'taskColumn'));
+        return response()->json($task->load('users', 'taskColumn'));
     }
 
     /**
@@ -51,7 +51,6 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'task_column_id' => 'required|exists:task_columns,id',
             'due_date' => 'nullable|date',
         ]);
 
@@ -79,17 +78,44 @@ class TaskController extends Controller
         $task->task_column_id = $request->task_column_id;
         $task->save();
 
-        return response()->json($task);
+        return response()->json($task->load('taskColumn'));
     }
 
-    public function assignUser(Request $request, Task $task)
+    public function assignToUsers(Request $request, Task $task)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'users' => 'required|array',
+            'users.*' => 'required|exists:users,id',
         ]);
 
-        $task->user()->syncWithoutDetaching([$request->user_id]);
+        $users = (array)$request->users;
 
-        return response()->json($task->load('user'));
+        $task->users()->syncWithoutDetaching($users);
+
+        // $task->users()->attach($request->user_id);
+
+        return response()->json($task->load('users'));
+    }
+
+    public function unassignFromUsers(Request $request, Task $task)
+    {
+        $request->validate([
+            'users' => 'required|array',
+            'users.*' => 'required|exists:users,id',
+        ]);
+
+        $task->users()->detach($request->users);
+
+        return response()->json($task->load('users'));
+    }
+
+    public function getUsers(Task $task)
+    {
+        return response()->json($task->users);
+    }
+
+    public function getTaskColumn(Task $task)
+    {
+        return response()->json($task->taskColumn);
     }
 }

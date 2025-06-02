@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Profile;
+use App\Models\Task;
 use App\Models\TaskColumn;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Http\Request;
@@ -23,15 +25,12 @@ class TaskColumnController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, Profile $profile)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        $validated = $request->validate(TaskColumn::rules($profile));
+        $profile->columns()->create($validated);
 
-        $taskColumn = TaskColumn::create($request->all());
-
-        return response()->json($taskColumn, 201);
+        return response()->json($profile->load('columns'), 201);
     }
 
     /**
@@ -45,24 +44,22 @@ class TaskColumnController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, TaskColumn $taskColumn)
+    public function update(Request $request, Profile $profile, TaskColumn $taskColumn)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        $validated = $request->validate(TaskColumn::rules($profile, $taskColumn->id));
 
-        $taskColumn->update($request->all());
+        $profile->columns()->where('id', $taskColumn->id)->update($validated);
+        $taskColumn->refresh(); // Refresh the model to get the updated data ???
 
-        return response()->json($taskColumn);
+        return response()->json($profile->load('columns'));
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(TaskColumn $taskColumn)
+    public function destroy(Profile $profile, TaskColumn $taskColumn)
     {
-        $taskColumn->delete();
-
+        $profile->columns()->where('id', $taskColumn->id)->delete();
         return response()->json(null, 204);
     }
 }
