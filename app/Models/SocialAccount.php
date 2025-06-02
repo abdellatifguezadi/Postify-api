@@ -12,12 +12,7 @@ class SocialAccount extends Model
         'profile_id',
         'platform',
         'account_name',
-        'access_token',
-        'account_details'
-    ];
-
-    protected $casts = [
-        'account_details' => 'json'
+        'access_token'
     ];
 
     protected $hidden = [
