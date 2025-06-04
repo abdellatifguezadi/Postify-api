@@ -7,8 +7,8 @@ use App\Models\Post;
 use App\Models\Media;
 use App\Models\Tag;
 use App\Models\SocialAccount;
+use App\Helpers\MediaHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
@@ -26,6 +26,27 @@ class PostController extends Controller
         ]);
     }
 
+    public function getPostsByStatus(SocialAccount $socialAccount, $status)
+    {
+        if (!in_array($status, ['draft', 'queued', 'sent'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid status. Status must be draft, queued or sent'
+            ], 400);
+        }
+
+        $posts = $socialAccount->posts()
+            ->where('status', $status)
+            ->with(['medias', 'socialAccount', 'tags'])
+            ->latest()
+            ->paginate(15);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $posts
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -33,28 +54,14 @@ class PostController extends Controller
             'media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4|max:102400',
             'social_account_ids' => 'required|array',
             'social_account_ids.*' => 'exists:social_accounts,id',
-            'scheduled_time' => 'nullable|date',
             'status' => 'required|in:draft,queued',
+            'scheduled_time' => 'nullable|date',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id'
         ]);
 
         $posts = [];
-        $mediaFiles = [];
-
-
-        if ($request->hasFile('media')) {
-            foreach ($request->file('media') as $file) {
-                $path = $file->store('posts/media', 'public');
-                $type = explode('/', $file->getMimeType())[0];
-                
-                $mediaFiles[] = [
-                    'path' => $path,
-                    'type' => $type
-                ];
-            }
-        }
-
+        $mediaFiles = $request->hasFile('media') ? $request->file('media') : [];
 
         foreach ($request->social_account_ids as $accountId) {
             $post = new Post([
@@ -66,36 +73,72 @@ class PostController extends Controller
             
             $post->save();
 
-
             if ($request->has('tags')) {
                 $post->tags()->attach($request->tags);
             }
 
-
-            foreach ($mediaFiles as $mediaFile) {
-                $newPath = 'posts/media/' . uniqid() . '_' . basename($mediaFile['path']);
-                Storage::disk('public')->copy($mediaFile['path'], $newPath);
-                
-                $media = new Media([
-                    'path' => $newPath,
-                    'type' => $mediaFile['type']
-                ]);
-                
-                $post->medias()->save($media);
+            if (!empty($mediaFiles)) {
+                $storedMedia = MediaHelper::storeMedia($mediaFiles, $post->id);
+                foreach ($storedMedia as $mediaFile) {
+                    $media = new Media([
+                        'path' => $mediaFile['path'],
+                        'type' => $mediaFile['type']
+                    ]);
+                    
+                    $post->medias()->save($media);
+                }
             }
 
             $posts[] = $post->load(['medias', 'socialAccount', 'tags']);
-        }
-
-
-        foreach ($mediaFiles as $mediaFile) {
-            Storage::disk('public')->delete($mediaFile['path']);
         }
 
         return response()->json([
             'status' => 'success',
             'message' => count($posts) . ' posts created successfully',
             'data' => $posts
+        ], 201);
+    }
+
+    public function storeAccount(Request $request, SocialAccount $socialAccount)
+    {
+        $request->validate([
+            'content' => 'required_without:media|string|max:2200',
+            'media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4|max:102400',
+            'scheduled_time' => 'nullable|date',
+            'status' => 'required|in:draft,queued',
+            'tags' => 'nullable|array',
+            'tags.*' => 'exists:tags,id'
+        ]);
+
+        $post = new Post([
+            'content' => $request->content,
+            'social_account_id' => $socialAccount->id,
+            'status' => $request->status,
+            'scheduled_time' => $request->scheduled_time
+        ]);
+        
+        $post->save();
+
+        if ($request->has('tags')) {
+            $post->tags()->attach($request->tags);
+        }
+
+        if ($request->hasFile('media')) {
+            $mediaFiles = MediaHelper::storeMedia($request->file('media'), $post->id);
+            foreach ($mediaFiles as $mediaFile) {
+                $media = new Media([
+                    'path' => $mediaFile['path'],
+                    'type' => $mediaFile['type']
+                ]);
+                
+                $post->medias()->save($media);
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Post created successfully',
+            'data' => $post->load(['medias', 'socialAccount', 'tags'])
         ], 201);
     }
 
@@ -141,20 +184,15 @@ class PostController extends Controller
         $post->tags()->sync($request->tags ?? []);
 
         if ($request->hasFile('media')) {
+            $oldMediaPaths = $post->medias->pluck('path')->toArray();
+            MediaHelper::deleteMediaFiles($oldMediaPaths);
+            $post->medias()->delete();
+            $mediaFiles = MediaHelper::storeMedia($request->file('media'), $post->id);
 
-            foreach ($post->medias as $media) {
-                Storage::disk('public')->delete($media->path);
-                $media->delete();
-            }
-
-
-            foreach ($request->file('media') as $file) {
-                $path = $file->store('posts/media', 'public');
-                $type = explode('/', $file->getMimeType())[0];
-                
+            foreach ($mediaFiles as $mediaFile) {
                 $media = new Media([
-                    'path' => $path,
-                    'type' => $type
+                    'path' => $mediaFile['path'],
+                    'type' => $mediaFile['type']
                 ]);
                 
                 $post->medias()->save($media);
@@ -177,9 +215,8 @@ class PostController extends Controller
             ], 403);
         }
 
-        foreach ($post->medias as $media) {
-            Storage::disk('public')->delete($media->path);
-        }
+        $mediaPaths = $post->medias->pluck('path')->toArray();
+        MediaHelper::deleteMediaFiles($mediaPaths);
         
         $post->delete();
 
@@ -281,12 +318,11 @@ class PostController extends Controller
         $newPost->tags()->attach($post->tags->pluck('id'));
 
         foreach ($post->medias as $media) {
-            $newPath = 'posts/media/' . uniqid() . '_' . basename($media->path);
-            Storage::disk('public')->copy($media->path, $newPath);
+            $newMediaData = MediaHelper::duplicateMedia($media);
             
             $newMedia = new Media([
-                'path' => $newPath,
-                'type' => $media->type
+                'path' => $newMediaData['path'],
+                'type' => $newMediaData['type']
             ]);
             
             $newPost->medias()->save($newMedia);
@@ -298,4 +334,5 @@ class PostController extends Controller
             'data' => $newPost->load(['medias', 'socialAccount', 'tags'])
         ]);
     }
+
 } 
