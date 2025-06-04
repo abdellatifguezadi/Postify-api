@@ -26,6 +26,27 @@ class PostController extends Controller
         ]);
     }
 
+    public function getPostsByStatus(SocialAccount $socialAccount, $status)
+    {
+        if (!in_array($status, ['draft', 'queued', 'sent'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid status. Status must be draft, queued or sent'
+            ], 400);
+        }
+
+        $posts = $socialAccount->posts()
+            ->where('status', $status)
+            ->with(['medias', 'socialAccount', 'tags'])
+            ->latest()
+            ->paginate(15);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $posts
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -34,7 +55,6 @@ class PostController extends Controller
             'social_account_ids' => 'required|array',
             'social_account_ids.*' => 'exists:social_accounts,id',
             'scheduled_time' => 'nullable|date',
-            'status' => 'required|in:draft,queued',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id'
         ]);
@@ -60,7 +80,7 @@ class PostController extends Controller
             $post = new Post([
                 'content' => $request->content,
                 'social_account_id' => $accountId,
-                'status' => $request->status,
+                'status' => 'queued',
                 'scheduled_time' => $request->scheduled_time
             ]);
             
@@ -96,6 +116,67 @@ class PostController extends Controller
             'status' => 'success',
             'message' => count($posts) . ' posts created successfully',
             'data' => $posts
+        ], 201);
+    }
+
+    public function storeAccount(Request $request, SocialAccount $socialAccount)
+    {
+        $request->validate([
+            'content' => 'required_without:media|string|max:2200',
+            'media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4|max:102400',
+            'scheduled_time' => 'nullable|date',
+            'status' => 'required|in:draft,queued',
+            'tags' => 'nullable|array',
+            'tags.*' => 'exists:tags,id'
+        ]);
+
+        $mediaFiles = [];
+
+        if ($request->hasFile('media')) {
+            foreach ($request->file('media') as $file) {
+                $path = $file->store('posts/media', 'public');
+                $type = explode('/', $file->getMimeType())[0];
+                
+                $mediaFiles[] = [
+                    'path' => $path,
+                    'type' => $type
+                ];
+            }
+        }
+
+        $post = new Post([
+            'content' => $request->content,
+            'social_account_id' => $socialAccount->id,
+            'status' => $request->status,
+            'scheduled_time' => $request->scheduled_time
+        ]);
+        
+        $post->save();
+
+        if ($request->has('tags')) {
+            $post->tags()->attach($request->tags);
+        }
+
+        foreach ($mediaFiles as $mediaFile) {
+            $newPath = 'posts/media/' . uniqid() . '_' . basename($mediaFile['path']);
+            Storage::disk('public')->copy($mediaFile['path'], $newPath);
+            
+            $media = new Media([
+                'path' => $newPath,
+                'type' => $mediaFile['type']
+            ]);
+            
+            $post->medias()->save($media);
+        }
+
+        foreach ($mediaFiles as $mediaFile) {
+            Storage::disk('public')->delete($mediaFile['path']);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Post created successfully',
+            'data' => $post->load(['medias', 'socialAccount', 'tags'])
         ], 201);
     }
 
@@ -298,4 +379,5 @@ class PostController extends Controller
             'data' => $newPost->load(['medias', 'socialAccount', 'tags'])
         ]);
     }
+
 } 
