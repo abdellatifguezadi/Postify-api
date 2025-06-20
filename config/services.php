@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID', '716713197417108'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', 'https://b1d8-41-143-57-20.ngrok-free.app/api/facebook/callback'),
+        'default_graph_version' => 'v18.0',
+    ],
+
 ];
