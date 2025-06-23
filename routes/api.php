@@ -76,6 +76,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/profiles/{profile}/facebook/simple-login', [SocialAccountController::class, 'getSimpleFacebookLoginUrl']);
     // Route::get('/profiles/{profile}/facebook/minimal-login', [SocialAccountController::class, 'getMinimalFacebookLoginUrl']);
 
+    // Instagram OAuth routes
+    Route::get('/profiles/{profile}/instagram/login-url-state', [SocialAccountController::class, 'getInstagramLoginUrlWithState']);
+
+    // Connect specific page
+    Route::post('/profiles/{profile}/connect-page', [SocialAccountController::class, 'connectPage']);
+
 
 
 

@@ -42,4 +42,10 @@ return [
         'default_graph_version' => 'v18.0',
     ],
 
+    'instagram' => [
+        'client_id' => env('INSTAGRAM_CLIENT_ID', env('FACEBOOK_CLIENT_ID', '716713197417108')),
+        'client_secret' => env('INSTAGRAM_CLIENT_SECRET', env('FACEBOOK_CLIENT_SECRET')),
+        'redirect' => env('INSTAGRAM_REDIRECT_URI', 'https://b1d8-41-143-57-20.ngrok-free.app/api/instagram/callback'),
+    ],
+
 ];
