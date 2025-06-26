@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TaskColumnController;
 use App\Http\Controllers\Api\TaskController;
@@ -17,7 +18,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Facebook OAuth callback (public route)
-Route::get('/facebook/callback', [SocialAccountController::class, 'handleFacebookCallback']);
+Route::get('/facebook/callback', [OAuthController::class, 'handleFacebookCallback']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -69,18 +70,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'update']);
     Route::delete('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
 
-    // Facebook OAuth routes
-    // Route::get('/profiles/{profile}/facebook/redirect', [SocialAccountController::class, 'redirectToFacebook']);
-    // Route::get('/profiles/{profile}/facebook/login-url', [SocialAccountController::class, 'getFacebookLoginUrl']);
-    Route::get('/profiles/{profile}/facebook/login-url-state', [SocialAccountController::class, 'getFacebookLoginUrlWithState']);
-    // Route::get('/profiles/{profile}/facebook/simple-login', [SocialAccountController::class, 'getSimpleFacebookLoginUrl']);
-    // Route::get('/profiles/{profile}/facebook/minimal-login', [SocialAccountController::class, 'getMinimalFacebookLoginUrl']);
-
-    // Instagram OAuth routes
-    Route::get('/profiles/{profile}/instagram/login-url-state', [SocialAccountController::class, 'getInstagramLoginUrlWithState']);
-
-    // Connect specific page
-    Route::post('/profiles/{profile}/connect-page', [SocialAccountController::class, 'connectPage']);
+    // OAuth routes
+    Route::get('/profiles/{profile}/facebook/login-url-state', [OAuthController::class, 'getFacebookLoginUrlWithState']);
+    Route::get('/profiles/{profile}/instagram/login-url-state', [OAuthController::class, 'getInstagramLoginUrlWithState']);
+    Route::post('/profiles/{profile}/connect-page', [OAuthController::class, 'connectPage']);
 
 
 
