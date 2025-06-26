@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TaskColumnController;
 use App\Http\Controllers\Api\TaskController;
@@ -15,6 +16,9 @@ use App\Http\Controllers\Api\TeamController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Facebook OAuth callback (public route)
+Route::get('/facebook/callback', [OAuthController::class, 'handleFacebookCallback']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -65,6 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'show']);
     Route::put('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'update']);
     Route::delete('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
+
+    // OAuth routes
+    Route::get('/profiles/{profile}/facebook/login-url-state', [OAuthController::class, 'getFacebookLoginUrlWithState']);
+    Route::get('/profiles/{profile}/instagram/login-url-state', [OAuthController::class, 'getInstagramLoginUrlWithState']);
+    Route::post('/profiles/{profile}/connect-page', [OAuthController::class, 'connectPage']);
 
 
 
