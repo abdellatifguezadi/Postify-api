@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TaskColumnController;
 use App\Http\Controllers\Api\TaskController;
@@ -15,6 +16,9 @@ use App\Http\Controllers\Api\TeamController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Facebook OAuth callback (public route)
+Route::get('/facebook/callback', [OAuthController::class, 'handleFacebookCallback']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -46,6 +50,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+
+    // Task Columns routes
+    Route::post('/profiles/{profile}/columns', [TaskColumnController::class, 'store']);
+    Route::get('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'show']);
+    Route::put('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'update']);
+    Route::delete('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'destroy']);
+    Route::delete('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'destroy']);
+
+
+
+
+
     // SocialAccount management routes
 
     Route::get('/profiles/{profile}/social-accounts', [SocialAccountController::class, 'index']);
@@ -54,17 +70,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'update']);
     Route::delete('/profiles/{profile}/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
 
+    // OAuth routes
+    Route::get('/profiles/{profile}/facebook/login-url-state', [OAuthController::class, 'getFacebookLoginUrlWithState']);
+    Route::get('/profiles/{profile}/instagram/login-url-state', [OAuthController::class, 'getInstagramLoginUrlWithState']);
+    Route::post('/profiles/{profile}/connect-page', [OAuthController::class, 'connectPage']);
 
 
 
-    // Task Columns routes
-    Route::post('/profiles/{profile}/columns', [TaskColumnController::class, 'store']);
-    Route::get('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'show']);
-    Route::put('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'update']);
-    Route::delete('profiles/{profile}/columns/{taskColumn}', [TaskColumnController::class, 'destroy']);
-    Route::get('profiles/{profile}/columns/{taskColumn}/tasks', [TaskColumnController::class, 'getTasks']);
 
 
+    // Post management routes
+
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::post('/social-accounts/{socialAccount}/posts', [PostController::class, 'storeAccount']);
+    Route::get('/social-accounts/{socialAccount}/posts', [PostController::class, 'index']);
+    Route::get('/social-accounts/{socialAccount}/posts/status/{status}', [PostController::class, 'getPostsByStatus']);
+    Route::get('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'show']);
+    Route::put('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'update']);
+    Route::delete('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'destroy']);
+    Route::put('/social-accounts/{socialAccount}/posts/{post}/status', [PostController::class, 'changeStatus']);
+    Route::put('/social-accounts/{socialAccount}/posts/{post}/schedule', [PostController::class, 'updateSchedule']);
+    // Route::post('/social-accounts/{socialAccount}/posts/{post}/duplicate', [PostController::class, 'duplicate']);
+
+
+
+    // Tags routes
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/tags', [TagController::class, 'store']);
+    Route::get('/tags/{tag}', [TagController::class, 'show']);
+    Route::put('/tags/{tag}', [TagController::class, 'update']);
+    Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
+    Route::get('/posts/{post}/tags', [TagController::class, 'tagByPost']);
 
 
 
@@ -80,29 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/tasks/{task}/unassignFromUsers/', [TaskController::class, 'unassignFromUsers']);
     Route::get('/tasks/{task}/getUsers', [TaskController::class, 'getUsers']);
     Route::get('/tasks/{task}/getTaskColumn', [TaskController::class, 'getTaskColumn']);
-    Route::get('/users/{user}/get-tasks', [TaskController::class, 'getTasksByUser']);
 
-
-
-
-    // Post management routes
-
-    Route::post('/posts', [PostController::class, 'store']);
-    Route::get('/social-accounts/{socialAccount}/posts', [PostController::class, 'index']);
-    Route::get('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'show']);
-    Route::put('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'update']);
-    Route::delete('/social-accounts/{socialAccount}/posts/{post}', [PostController::class, 'destroy']);
-    Route::put('/social-accounts/{socialAccount}/posts/{post}/status', [PostController::class, 'changeStatus']);
-    // Route::put('/social-accounts/{socialAccount}/posts/{post}/schedule', [PostController::class, 'updateSchedule']);
-    // Route::post('/social-accounts/{socialAccount}/posts/{post}/duplicate', [PostController::class, 'duplicate']);
-
-
-    // Tags routes
-    Route::get('/tags', [TagController::class, 'index']);
-    Route::post('/tags', [TagController::class, 'store']);
-    Route::get('/tags/{tag}', [TagController::class, 'show']);
-    Route::put('/tags/{tag}', [TagController::class, 'update']);
-    Route::delete('/tags/{tag}', [TagController::class, 'destroy']);
 
 
 

@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\Profile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class SocialAccountController extends Controller
 {
@@ -13,9 +16,22 @@ class SocialAccountController extends Controller
     {
         $accounts = $profile->socialAccounts;
         
+        // Include access_token for testing purposes
+        $accountsWithTokens = $accounts->map(function ($account) {
+            return [
+                'id' => $account->id,
+                'profile_id' => $account->profile_id,
+                'platform' => $account->platform,
+                'account_name' => $account->account_name,
+                'access_token' => $account->access_token, // Include token for testing
+                'created_at' => $account->created_at,
+                'updated_at' => $account->updated_at
+            ];
+        });
+        
         return response()->json([
             'status' => 'success',
-            'data' => $accounts
+            'data' => $accountsWithTokens
         ]);
     }
 
@@ -42,7 +58,15 @@ class SocialAccountController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $socialAccount
+            'data' => [
+                'id' => $socialAccount->id,
+                'profile_id' => $socialAccount->profile_id,
+                'platform' => $socialAccount->platform,
+                'account_name' => $socialAccount->account_name,
+                'access_token' => $socialAccount->access_token,
+                'created_at' => $socialAccount->created_at,
+                'updated_at' => $socialAccount->updated_at
+            ]
         ]);
     }
 
