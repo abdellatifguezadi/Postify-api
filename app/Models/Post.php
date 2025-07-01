@@ -69,6 +69,12 @@ class Post extends Model
         return $query->where('status', 'sent');
     }
 
+    public function scopeScheduled($query)
+    {
+        return $query->where('is_published', false)
+            ->where('publish_at', '<=', now());
+    }
+    
     public function scopeScheduledBetween($query, $start, $end)
     {
         return $query->whereBetween('scheduled_time', [$start, $end]);

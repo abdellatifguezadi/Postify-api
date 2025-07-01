@@ -111,6 +111,26 @@ class DatabaseSeeder extends Seeder
             'account_name' => 'tech_innovators_linkedin',
         ]);
 
+
+        // Create posts for the social accounts
+        Profile::find(1)->socialAccounts->first()->posts()->create([
+            'content' => 'Content for Post 1',
+        ]);
+        Profile::find(1)->socialAccounts->first()->posts()->create([
+            'content' => 'Content for Post 2',
+        ]);
+        Profile::find(2)->socialAccounts->first()->posts()->create([
+            'content' => 'Content for Post 3',
+        ]);
+        Profile::find(2)->socialAccounts->first()->posts()->create([
+            'content' => 'Content for Post 4',
+        ]);
+        Profile::find(3)->socialAccounts->first()->posts()->create([
+            'content' => 'Content for Post 5',
+        ]);
+
+
+
         // Create task columns
 
         TaskColumn::create([

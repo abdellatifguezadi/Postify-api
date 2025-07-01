@@ -298,4 +298,4 @@ class PostController extends Controller
             'data' => $newPost->load(['medias', 'socialAccount', 'tags'])
         ]);
     }
-} 
+}
