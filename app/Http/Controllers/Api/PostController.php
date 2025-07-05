@@ -26,6 +26,19 @@ class PostController extends Controller
         ]);
     }
 
+    public function getWeekPosts()
+    {
+        $posts = Post::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+            // ->with(['medias', 'socialAccount', 'tags'])
+            ->with(['medias'])
+            ->latest();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $posts->get()
+        ]);
+    }
+
     public function getPostsByStatus(SocialAccount $socialAccount, $status)
     {
         if (!in_array($status, ['draft', 'queued', 'sent'])) {

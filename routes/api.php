@@ -80,7 +80,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // Post management routes
-
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::get('/week-posts', [PostController::class, 'getWeekPosts']);
     Route::post('/posts', [PostController::class, 'store']);
     Route::post('/social-accounts/{socialAccount}/posts', [PostController::class, 'storeAccount']);
     Route::get('/social-accounts/{socialAccount}/posts', [PostController::class, 'index']);
