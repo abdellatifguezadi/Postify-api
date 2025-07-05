@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('social_accounts', function (Blueprint $table) {
-            //
+            $table->string('refresh_token')->nullable()->after('access_token');
+            $table->timestamp('expires_at')->nullable()->after('refresh_token');
+            $table->string('social_id')->nullable()->after('expires_at');
+            $table->string('avatar')->nullable()->after('social_id');
+            $table->string('email')->nullable()->after('avatar');
         });
     }
 
@@ -22,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('social_accounts', function (Blueprint $table) {
-            //
+            $table->dropColumn(['refresh_token', 'expires_at', 'social_id', 'avatar', 'email']);
         });
     }
-};
+}; 

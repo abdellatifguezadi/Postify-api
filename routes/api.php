@@ -73,6 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // OAuth routes
     Route::get('/profiles/{profile}/facebook/login-url-state', [OAuthController::class, 'getFacebookLoginUrlWithState']);
     Route::get('/profiles/{profile}/instagram/login-url-state', [OAuthController::class, 'getInstagramLoginUrlWithState']);
+    Route::get('/profiles/{profile}/linkedin-url', [OAuthController::class, 'getLinkedInUrl']);
+    Route::post('/profiles/{profile}/linkedin-connect', [OAuthController::class, 'connectLinkedInWithCode']);
     Route::post('/profiles/{profile}/connect-page', [OAuthController::class, 'connectPage']);
 
 
