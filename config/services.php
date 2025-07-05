@@ -48,4 +48,10 @@ return [
         'redirect' => env('INSTAGRAM_REDIRECT_URI', 'https://c2ba-41-141-226-108.ngrok-free.app/api/instagram/callback'),
     ],
 
+    'linkedin' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID', '78q232mmzpvttk'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET', 'WPL_AP1.RBxE91EHX2nwPD2b.Yx/YkQ=='),
+        'redirect' => env('LINKEDIN_REDIRECT_URI', 'https://oauth.pstmn.io/v1/callback'),
+    ],
+
 ];

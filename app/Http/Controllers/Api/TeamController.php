@@ -22,7 +22,7 @@ class TeamController extends Controller
         }
 
         $teams = $user->teams()->with('users', 'profiles')->get();
-        
+
         return response()->json([
             'user' => $user,
             'teams' => $teams
@@ -35,18 +35,27 @@ class TeamController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i', // Validation couleur hexadécimale
+            'description' => 'nullable|string|max:1000',
         ]);
+
         $team = new Team();
         $team->name = $validatedData['name'];
         $team->slug = Str::slug($validatedData['name'] . '-' . now()->format('dmYHis'));
+        $team->color = $validatedData['color'] ?? '#3B82F6'; // Couleur par défaut si non fournie
+        $team->description = $validatedData['description'] ?? null;
+
         if ($request->hasFile('logo')) {
             $team->logo = $request->file('logo')->store('logos', 'public');
         }
+
         $team->save();
+
         $user = Auth::user();
         if (!$user) {
             return response()->json(['message' => 'User not authenticated'], 401);
         }
+
         $team->users()->attach($user->id);
 
         return response()->json($team->load(['users']), 201);
@@ -68,32 +77,33 @@ class TeamController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name,' . $team->id,
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'color' => 'nullable|string|regex:/^#[0-9A-F]{6}$/i',
+            'description' => 'nullable|string|max:1000',
         ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
+
+        if (!$team->users()->where('user_id', $user->id)->exists()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $team->name = $validatedData['name'];
         $team->slug = Str::slug($validatedData['name'] . '-' . now()->format('dmYHis'));
+        $team->color = $validatedData['color'] ?? $team->color; // Garder l'ancienne couleur si non fournie
+        $team->description = $validatedData['description'] ?? $team->description;
+
         if ($request->hasFile('logo')) {
             if ($team->logo) {
                 Storage::disk('public')->delete($team->logo);
             }
             $team->logo = $request->file('logo')->store('logos', 'public');
         }
+
         $team->save();
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['message' => 'User not authenticated'], 401);
-        }
-        if (!$team->users()->where('user_id', $user->id)->exists()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-        $team->users()->syncWithoutDetaching($user->id);
+
         return response()->json($team->load(['users']));
     }
-
-
-
-
-
-
 }
-
-
