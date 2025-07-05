@@ -304,4 +304,94 @@ class OAuthController extends Controller
             ], 500);
         }
     }
+
+    // LINKEDIN OAUTH - SIMPLE VERSION
+    public function getLinkedInUrl(Profile $profile)
+    {
+        // Use the EXACT same state as the working manual URL
+        $state = 'test_500';
+        
+        $url = "https://www.linkedin.com/oauth/v2/authorization?" . http_build_query([
+            'response_type' => 'code',
+            'client_id' => config('services.linkedin.client_id'),
+            'redirect_uri' => config('services.linkedin.redirect'),
+            'state' => $state,
+            'scope' => 'openid profile email w_member_social'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'login_url' => $url,
+            'profile_id' => $profile->id
+        ]);
+    }
+
+    public function connectLinkedInWithCode(Request $request, Profile $profile)
+    {
+        try {
+            $validated = $request->validate([
+                'code' => 'required|string'
+            ]);
+
+            // Step 1: Exchange code for token - Using config values from .env
+            $response = Http::asForm()->post('https://www.linkedin.com/oauth/v2/accessToken', [
+                'grant_type' => 'authorization_code',
+                'code' => $validated['code'],
+                'redirect_uri' => config('services.linkedin.redirect'),
+                'client_id' => config('services.linkedin.client_id'),
+                'client_secret' => config('services.linkedin.client_secret')
+            ]);
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Token exchange failed: ' . $response->body(),
+                    'sent_data' => [
+                        'grant_type' => 'authorization_code',
+                        'redirect_uri' => config('services.linkedin.redirect'),
+                        'client_id' => config('services.linkedin.client_id')
+                    ]
+                ], 400);
+            }
+
+            $tokenData = $response->json();
+            $accessToken = $tokenData['access_token'];
+
+            // Step 2: Get user info
+            $userResponse = Http::withToken($accessToken)->get('https://api.linkedin.com/v2/userinfo');
+
+            if (!$userResponse->successful()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to get user info: ' . $userResponse->body()
+                ], 400);
+            }
+
+            $userData = $userResponse->json();
+
+            // Step 3: Save to database
+            $accountName = $userData['name'] ?? $userData['email'] ?? 'LinkedIn User';
+
+            $socialAccount = $profile->socialAccounts()->updateOrCreate(
+                ['platform' => 'linkedin', 'account_name' => $accountName],
+                ['access_token' => $accessToken]
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'LinkedIn connected successfully!',
+                'data' => [
+                    'social_account' => $socialAccount,
+                    'user_info' => $userData
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('LinkedIn error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Connection failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 
