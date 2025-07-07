@@ -26,6 +26,19 @@ class PostController extends Controller
         ]);
     }
 
+    public function getWeekPosts()
+    {
+        $posts = Post::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+            // ->with(['medias', 'socialAccount', 'tags'])
+            ->with(['medias'])
+            ->latest();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $posts->get()
+        ]);
+    }
+
     public function getPostsByStatus(SocialAccount $socialAccount, $status)
     {
         if (!in_array($status, ['draft', 'queued', 'sent'])) {
@@ -70,7 +83,7 @@ class PostController extends Controller
                 'status' => $request->status,
                 'scheduled_time' => $request->scheduled_time
             ]);
-            
+
             $post->save();
 
             if ($request->has('tags')) {
@@ -84,7 +97,7 @@ class PostController extends Controller
                         'path' => $mediaFile['path'],
                         'type' => $mediaFile['type']
                     ]);
-                    
+
                     $post->medias()->save($media);
                 }
             }
@@ -116,7 +129,7 @@ class PostController extends Controller
             'status' => $request->status,
             'scheduled_time' => $request->scheduled_time
         ]);
-        
+
         $post->save();
 
         if ($request->has('tags')) {
@@ -130,7 +143,7 @@ class PostController extends Controller
                     'path' => $mediaFile['path'],
                     'type' => $mediaFile['type']
                 ]);
-                
+
                 $post->medias()->save($media);
             }
         }
@@ -194,7 +207,7 @@ class PostController extends Controller
                     'path' => $mediaFile['path'],
                     'type' => $mediaFile['type']
                 ]);
-                
+
                 $post->medias()->save($media);
             }
         }
@@ -217,7 +230,7 @@ class PostController extends Controller
 
         $mediaPaths = $post->medias->pluck('path')->toArray();
         MediaHelper::deleteMediaFiles($mediaPaths);
-        
+
         $post->delete();
 
         return response()->json([
@@ -264,11 +277,11 @@ class PostController extends Controller
         }
 
         $post->status = $newStatus;
-        
+
         if ($newStatus === 'sent') {
             $post->published_at = now();
         }
-        
+
         $post->save();
 
         return response()->json([
@@ -319,12 +332,12 @@ class PostController extends Controller
 
         foreach ($post->medias as $media) {
             $newMediaData = MediaHelper::duplicateMedia($media);
-            
+
             $newMedia = new Media([
                 'path' => $newMediaData['path'],
                 'type' => $newMediaData['type']
             ]);
-            
+
             $newPost->medias()->save($newMedia);
         }
 
@@ -334,5 +347,4 @@ class PostController extends Controller
             'data' => $newPost->load(['medias', 'socialAccount', 'tags'])
         ]);
     }
-
-} 
+}

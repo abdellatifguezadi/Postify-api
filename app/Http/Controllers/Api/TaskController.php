@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -117,5 +118,19 @@ class TaskController extends Controller
     public function getTaskColumn(Task $task)
     {
         return response()->json($task->taskColumn);
+    }
+
+    public function getTasksByUser(User $user)
+    {
+        $tasks = $user->tasks()
+            ->with('taskColumn', 'users')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        // $tasks = $user->tasks()
+        //     // ->groupBy('task_column_id')
+        //     ->with('taskColumn', 'users')
+        //     ->orderBy('created_at', 'desc')
+        //     ->get();
+        return response()->json($tasks);
     }
 }

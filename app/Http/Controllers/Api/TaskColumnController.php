@@ -49,7 +49,7 @@ class TaskColumnController extends Controller
         $validated = $request->validate(TaskColumn::rules($profile, $taskColumn->id));
 
         $profile->columns()->where('id', $taskColumn->id)->update($validated);
-        $taskColumn->refresh(); // Refresh the model to get the updated data ???
+        $taskColumn->refresh(); // ???
 
         return response()->json($profile->load('columns'));
     }
@@ -61,5 +61,14 @@ class TaskColumnController extends Controller
     {
         $profile->columns()->where('id', $taskColumn->id)->delete();
         return response()->json(null, 204);
+    }
+
+    public function getTasks(Profile $profile, TaskColumn $taskColumn)
+    {
+        $tasks = Task::where('task_column_id', $taskColumn->id)
+            ->with('users')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($tasks);
     }
 }
