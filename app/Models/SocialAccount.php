@@ -12,11 +12,21 @@ class SocialAccount extends Model
         'profile_id',
         'platform',
         'account_name',
-        'access_token'
+        'access_token',
+        'refresh_token',
+        'expires_at',
+        'social_id',
+        'avatar',
+        'email'
     ];
 
     protected $hidden = [
-        'access_token'
+        'access_token',
+        'refresh_token'
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime'
     ];
 
     public function profile(): BelongsTo
