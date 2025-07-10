@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('teams', function (Blueprint $table) {
-            $table->string('color')->default('#3B82F6')->after('slug');
-            $table->text('description')->nullable()->after('color');
+        Schema::table('social_accounts', function (Blueprint $table) {
+            //
         });
     }
 
@@ -22,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('teams', function (Blueprint $table) {
-            $table->dropColumn(['color', 'description']);
+        Schema::table('social_accounts', function (Blueprint $table) {
+            //
         });
     }
 };

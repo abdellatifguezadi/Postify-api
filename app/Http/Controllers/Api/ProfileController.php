@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -28,11 +29,23 @@ class ProfileController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'avatar' => 'nullable|image|max:2048',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'description' => 'nullable|string|max:1000',
         ]);
 
-        $profile = $team->profiles()->create($request->all());
+        $profileData = [
+            'name' => $request->name,
+            'description' => $request->description,
+        ];
 
+        // Gestion de l'upload d'avatar
+        if ($request->hasFile('avatar')) {
+            $profileData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $profile = $team->profiles()->create($profileData);
+
+        // Création des colonnes par défaut
         $profile->columns()->create([
             'name' => 'To Do',
         ]);
@@ -50,16 +63,36 @@ class ProfileController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'avatar' => 'nullable|image|max:2048',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'description' => 'nullable|string|max:1000',
         ]);
 
-        $profile->update($request->all());
+        $profileData = [
+            'name' => $request->name,
+            'description' => $request->description,
+        ];
+
+        // Gestion de l'upload d'avatar
+        if ($request->hasFile('avatar')) {
+            // Supprimer l'ancien avatar s'il existe
+            if ($profile->avatar) {
+                Storage::disk('public')->delete($profile->avatar);
+            }
+            $profileData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $profile->update($profileData);
 
         return response()->json($profile->load(['socialAccounts', 'columns']));
     }
 
     public function destroy(Profile $profile)
     {
+        // Supprimer l'avatar s'il existe
+        if ($profile->avatar) {
+            Storage::disk('public')->delete($profile->avatar);
+        }
+
         $profile->delete();
         return response()->json(null, 204);
     }

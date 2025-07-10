@@ -38,14 +38,14 @@ return [
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID', '716713197417108'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'redirect' => env('FACEBOOK_REDIRECT_URI', 'https://c2ba-41-141-226-108.ngrok-free.app/api/facebook/callback'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', 'https://ca81c6a6e8f7.ngrok-free.app/api/facebook/callback'),
         'default_graph_version' => 'v18.0',
     ],
 
     'instagram' => [
         'client_id' => env('INSTAGRAM_CLIENT_ID', env('FACEBOOK_CLIENT_ID', '716713197417108')),
         'client_secret' => env('INSTAGRAM_CLIENT_SECRET', env('FACEBOOK_CLIENT_SECRET')),
-        'redirect' => env('INSTAGRAM_REDIRECT_URI', 'https://c2ba-41-141-226-108.ngrok-free.app/api/instagram/callback'),
+        'redirect' => env('INSTAGRAM_REDIRECT_URI', 'https://ca81c6a6e8f7.ngrok-free.app/api/instagram/callback'),
     ],
 
     'linkedin' => [
