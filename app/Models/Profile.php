@@ -2,11 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Profile extends Model
 {
-    protected $fillable = ['name', 'avatar'];
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'avatar',
+        'description',
+        'team_id',
+    ];
 
 
     public function team()
