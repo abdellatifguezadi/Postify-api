@@ -14,6 +14,7 @@ class Profile extends Model
         'avatar',
         'description',
         'team_id',
+        'color',
     ];
 
 
