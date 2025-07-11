@@ -16,14 +16,19 @@ class SocialAccountController extends Controller
     {
         $accounts = $profile->socialAccounts;
         
-        // Include access_token for testing purposes
-        $accountsWithTokens = $accounts->map(function ($account) {
+        // Include all fields including tokens for API response
+        $accountsWithAllFields = $accounts->map(function ($account) {
             return [
                 'id' => $account->id,
                 'profile_id' => $account->profile_id,
                 'platform' => $account->platform,
                 'account_name' => $account->account_name,
-                'access_token' => $account->access_token, // Include token for testing
+                'access_token' => $account->access_token,
+                'avatar' => $account->avatar,
+                'email' => $account->email,
+                'social_id' => $account->social_id,
+                'refresh_token' => $account->refresh_token,
+                'expires_at' => $account->expires_at,
                 'created_at' => $account->created_at,
                 'updated_at' => $account->updated_at
             ];
@@ -31,7 +36,7 @@ class SocialAccountController extends Controller
         
         return response()->json([
             'status' => 'success',
-            'data' => $accountsWithTokens
+            'data' => $accountsWithAllFields
         ]);
     }
 
@@ -40,7 +45,12 @@ class SocialAccountController extends Controller
         $validated = $request->validate([
             'platform' => 'required|string',
             'account_name' => 'required|string',
-            'access_token' => 'required|string'
+            'access_token' => 'required|string',
+            'refresh_token' => 'nullable|string',
+            'expires_at' => 'nullable|date',
+            'social_id' => 'nullable|string',
+            'avatar' => 'nullable|url',
+            'email' => 'nullable|email'
         ]);
         
         $socialAccount = $profile->socialAccounts()->create($validated);
@@ -48,7 +58,20 @@ class SocialAccountController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Social account created successfully',
-            'data' => $socialAccount
+            'data' => [
+                'id' => $socialAccount->id,
+                'profile_id' => $socialAccount->profile_id,
+                'platform' => $socialAccount->platform,
+                'account_name' => $socialAccount->account_name,
+                'access_token' => $socialAccount->access_token,
+                'avatar' => $socialAccount->avatar,
+                'email' => $socialAccount->email,
+                'social_id' => $socialAccount->social_id,
+                'refresh_token' => $socialAccount->refresh_token,
+                'expires_at' => $socialAccount->expires_at,
+                'created_at' => $socialAccount->created_at,
+                'updated_at' => $socialAccount->updated_at
+            ]
         ], 201);
     }
 
@@ -64,6 +87,11 @@ class SocialAccountController extends Controller
                 'platform' => $socialAccount->platform,
                 'account_name' => $socialAccount->account_name,
                 'access_token' => $socialAccount->access_token,
+                'avatar' => $socialAccount->avatar,
+                'email' => $socialAccount->email,
+                'social_id' => $socialAccount->social_id,
+                'refresh_token' => $socialAccount->refresh_token,
+                'expires_at' => $socialAccount->expires_at,
                 'created_at' => $socialAccount->created_at,
                 'updated_at' => $socialAccount->updated_at
             ]
@@ -77,7 +105,12 @@ class SocialAccountController extends Controller
         $validated = $request->validate([
             'platform' => 'sometimes|required|string',
             'account_name' => 'sometimes|required|string',
-            'access_token' => 'sometimes|required|string'
+            'access_token' => 'sometimes|required|string',
+            'refresh_token' => 'sometimes|nullable|string',
+            'expires_at' => 'sometimes|nullable|date',
+            'social_id' => 'sometimes|nullable|string',
+            'avatar' => 'sometimes|nullable|url',
+            'email' => 'sometimes|nullable|email'
         ]);
 
         $socialAccount->update($validated);
@@ -85,7 +118,20 @@ class SocialAccountController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Social account updated successfully',
-            'data' => $socialAccount
+            'data' => [
+                'id' => $socialAccount->id,
+                'profile_id' => $socialAccount->profile_id,
+                'platform' => $socialAccount->platform,
+                'account_name' => $socialAccount->account_name,
+                'access_token' => $socialAccount->access_token,
+                'avatar' => $socialAccount->avatar,
+                'email' => $socialAccount->email,
+                'social_id' => $socialAccount->social_id,
+                'refresh_token' => $socialAccount->refresh_token,
+                'expires_at' => $socialAccount->expires_at,
+                'created_at' => $socialAccount->created_at,
+                'updated_at' => $socialAccount->updated_at
+            ]
         ]);
     }
 
