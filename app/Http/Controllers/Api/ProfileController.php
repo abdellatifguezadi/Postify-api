@@ -31,11 +31,13 @@ class ProfileController extends Controller
             'name' => 'required|string|max:255',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'description' => 'nullable|string|max:1000',
+            'color' => 'string|max:7',
         ]);
 
         $profileData = [
             'name' => $request->name,
             'description' => $request->description,
+            'color' => $request->color ?? '#3B82F6',
         ];
 
         // Gestion de l'upload d'avatar
