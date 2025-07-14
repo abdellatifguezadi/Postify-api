@@ -19,19 +19,17 @@ class OAuthController extends Controller
     public function getFacebookLoginUrlWithState(Profile $profile)
     {
         $state = base64_encode(json_encode(['profile_id' => $profile->id, 'platform' => 'facebook']));
-        
-        $redirectUrl = Socialite::driver('facebook')
-            ->redirectUrl(config('services.facebook.redirect'))
-            ->stateless()
-            ->scopes([
-                'email',
-                'public_profile',
-                'pages_manage_posts',
-                'pages_read_engagement'
-            ])
-            ->with(['state' => $state])
-            ->redirect()
-            ->getTargetUrl();
+
+        // Generate Facebook OAuth URL manually
+        $params = [
+            'client_id' => config('services.facebook.client_id'),
+            'redirect_uri' => config('services.facebook.redirect'),
+            'scope' => 'email,public_profile,pages_manage_posts,pages_read_engagement',
+            'response_type' => 'code',
+            'state' => $state
+        ];
+
+        $redirectUrl = 'https://www.facebook.com/v18.0/dialog/oauth?' . http_build_query($params);
 
         return response()->json([
             'status' => 'success',
@@ -47,21 +45,17 @@ class OAuthController extends Controller
     public function getInstagramLoginUrlWithState(Profile $profile)
     {
         $state = base64_encode(json_encode(['profile_id' => $profile->id, 'platform' => 'instagram']));
-        
-        $redirectUrl = Socialite::driver('facebook')
-            ->redirectUrl(config('services.facebook.redirect'))
-            ->stateless()
-            ->scopes([
-                'email',
-                'public_profile',
-                'pages_manage_posts',
-                'pages_read_engagement',
-                'instagram_basic',
-                'instagram_content_publish'
-            ])
-            ->with(['state' => $state])
-            ->redirect()
-            ->getTargetUrl();
+
+        // Generate Facebook OAuth URL manually (Instagram uses Facebook OAuth)
+        $params = [
+            'client_id' => config('services.facebook.client_id'),
+            'redirect_uri' => config('services.facebook.redirect'),
+            'scope' => 'email,public_profile,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish',
+            'response_type' => 'code',
+            'state' => $state
+        ];
+
+        $redirectUrl = 'https://www.facebook.com/v18.0/dialog/oauth?' . http_build_query($params);
 
         return response()->json([
             'status' => 'success',
@@ -74,156 +68,198 @@ class OAuthController extends Controller
     /**
      * Handle Facebook OAuth callback (works for both Facebook and Instagram)
      */
-    public function handleFacebookCallback(Request $request)
+    public function handleFacebookCallback(Request $request, $platform = 'facebook')
     {
         try {
-            $code = $request->input('code');
+            // For now, let's not require a specific profile and use a default one
+            $profile = Profile::first();
+            if (!$profile) {
+                throw new \Exception('No profiles found in the system. Please create a profile first.');
+            }
+
+            // Get the authorization code from the callback
+            $code = $request->get('code');
             if (!$code) {
-                throw new \Exception('Authorization code is missing');
+                throw new \Exception('No authorization code received from Facebook');
             }
 
-            // Try to get profile ID and platform from state parameter
-            $state = $request->input('state');
-            $profileId = null;
-            $platform = 'facebook'; // default
+            // Exchange code for access token manually
+            $tokenResponse = Http::post('https://graph.facebook.com/v18.0/oauth/access_token', [
+                'client_id' => config('services.facebook.client_id'),
+                'client_secret' => config('services.facebook.client_secret'),
+                'redirect_uri' => config('services.facebook.redirect'),
+                'code' => $code
+            ]);
 
-            if ($state) {
-                try {
-                    $stateData = json_decode(base64_decode($state), true);
-                    if (isset($stateData['profile_id'])) {
-                        $profileId = $stateData['profile_id'];
-                    }
-                    if (isset($stateData['platform'])) {
-                        $platform = $stateData['platform'];
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Failed to decode state parameter', ['state' => $state]);
-                }
+            if (!$tokenResponse->successful()) {
+                throw new \Exception('Failed to exchange code for token: ' . $tokenResponse->body());
             }
 
-            // If no profile ID from state, we need to get it from the user's session or request
-            if (!$profileId) {
-                // For now, let's try to get the first profile of the authenticated user
-                $user = Auth::user();
-                if (!$user) {
-                    throw new \Exception('User not authenticated and no profile ID provided');
-                }
+            $tokenData = $tokenResponse->json();
+            $accessToken = $tokenData['access_token'] ?? null;
 
-                $profile = $user->teams->first()?->profiles->first();
-                if (!$profile) {
-                    throw new \Exception('No profile found for user');
-                }
-                $profileId = $profile->id;
+            if (!$accessToken) {
+                throw new \Exception('No access token received from Facebook');
             }
 
-            $profile = Profile::findOrFail($profileId);
-
-            // Use Socialite to handle the OAuth flow
-            $socialUser = Socialite::driver('facebook')
-                ->redirectUrl(config('services.facebook.redirect'))
-                ->stateless()
-                ->user();
+            // Get user information from Facebook API
+            $userInfo = $this->getFacebookUserInfo($accessToken);
 
             // Get pages for the user
-            $pages = $this->getUserPages($socialUser->token, $platform);
+            $pages = $this->getUserPages($accessToken, $platform);
 
-            return response()->json([
+            // Prepare the data that will be sent to frontend
+            $callbackData = [
                 'status' => 'success',
                 'message' => 'Authentication successful. Please select a page to connect.',
                 'data' => [
-                    'user_token' => $socialUser->token,
-                    'user_name' => $socialUser->getName(),
-                    'profile_id' => $profileId,
+                    'user_token' => $accessToken,
+                    'user_name' => $userInfo['name'] ?? 'Unknown User',
+                    'user_avatar' => $userInfo['picture']['data']['url'] ?? null,
                     'platform' => $platform,
-                    'pages' => $pages
+                    'pages' => $pages,
+                    'profile_id' => $profile->id
                 ]
+            ];
+
+            // Generate a unique session key for this callback data
+            $sessionKey = 'oauth_callback_' . uniqid();
+
+            // Store the callback data in cache/session for the frontend to retrieve
+            // Using cache for 10 minutes
+            cache()->put($sessionKey, $callbackData, 600);
+
+            // Build the frontend redirect URL with the session key
+            $frontendUrl = config('services.frontend.url') . config('services.frontend.oauth_callback_path');
+            $redirectUrl = $frontendUrl . '?' . http_build_query([
+                'session_key' => $sessionKey,
+                'platform' => $platform,
+                'status' => 'success'
             ]);
 
+            // Redirect to frontend
+            return redirect($redirectUrl);
         } catch (\Exception $e) {
-            Log::error('Facebook/Instagram callback error:', [
-                'error' => $e->getMessage(),
-                'state' => $request->input('state'),
-                'code' => $request->input('code')
+            Log::error('OAuth callback failed:', ['error' => $e->getMessage()]);
+
+            // Generate error session key
+            $errorSessionKey = 'oauth_callback_' . uniqid();
+            $errorData = [
+                'status' => 'error',
+                'message' => 'Authentication failed: ' . $e->getMessage(),
+                'data' => null
+            ];
+
+            cache()->put($errorSessionKey, $errorData, 600);
+
+            // Redirect to frontend with error
+            $frontendUrl = config('services.frontend.url') . config('services.frontend.oauth_callback_path');
+            $redirectUrl = $frontendUrl . '?' . http_build_query([
+                'session_key' => $errorSessionKey,
+                'platform' => $platform,
+                'status' => 'error'
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to connect account: ' . $e->getMessage(),
-                'debug' => [
-                    'state' => $request->input('state'),
-                    'code' => $request->input('code')
-                ]
-            ], 500);
+            return redirect($redirectUrl);
         }
     }
 
     /**
-     * Get user's Facebook pages
+     * Get user's Facebook pages or Instagram Business Accounts
      */
     private function getUserPages($userToken, $platform)
     {
         try {
-            $response = Http::get('https://graph.facebook.com/v18.0/me/accounts', [
-                'access_token' => $userToken,
-                'fields' => 'id,name,access_token,category,fan_count'
-            ]);
+            $pages = $this->getFacebookPages($userToken);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $pages = $data['data'] ?? [];
-
-                // Filter pages based on platform
-                if ($platform === 'instagram') {
-                    // For Instagram, we need to check if pages have Instagram Business accounts
-                    $instagramPages = [];
-                    foreach ($pages as $page) {
-                        $instagramResponse = Http::get("https://graph.facebook.com/v18.0/{$page['id']}", [
-                            'access_token' => $userToken,
-                            'fields' => 'instagram_business_account'
-                        ]);
-
-                        if ($instagramResponse->successful()) {
-                            $pageData = $instagramResponse->json();
-                            if (isset($pageData['instagram_business_account'])) {
-                                $instagramAccountId = $pageData['instagram_business_account']['id'];
-                                
-                                // Get Instagram Business account details and token
-                                $instagramAccountResponse = Http::get("https://graph.facebook.com/v18.0/{$instagramAccountId}", [
-                                    'access_token' => $page['access_token'],
-                                    'fields' => 'id,username,name,profile_picture_url,followers_count,media_count'
-                                ]);
-
-                                if ($instagramAccountResponse->successful()) {
-                                    $instagramData = $instagramAccountResponse->json();
-                                    $instagramPages[] = [
-                                        'id' => $page['id'],
-                                        'name' => $page['name'],
-                                        'page_access_token' => $page['access_token'],
-                                        'category' => $page['category'],
-                                        'fan_count' => $page['fan_count'],
-                                        'instagram_business_account_id' => $instagramAccountId,
-                                        'instagram_username' => $instagramData['username'] ?? $page['name'],
-                                        'instagram_name' => $instagramData['name'] ?? $page['name'],
-                                        'instagram_followers_count' => $instagramData['followers_count'] ?? 0,
-                                        'instagram_media_count' => $instagramData['media_count'] ?? 0,
-                                        'instagram_profile_picture_url' => $instagramData['profile_picture_url'] ?? null
-                                    ];
-                                }
-                            }
-                        }
-                    }
-                    return $instagramPages;
-                }
-
-                return $pages;
+            if ($platform === 'instagram') {
+                return $this->getInstagramBusinessAccounts($pages, $userToken);
             }
 
-            return [];
+            return $pages;
         } catch (\Exception $e) {
             Log::error('Failed to get user pages:', ['error' => $e->getMessage()]);
             return [];
         }
     }
+
+    /**
+     * Fetches pages from Facebook Graph API.
+     */
+    private function getFacebookPages($userToken)
+    {
+        $version = config('services.facebook.graph_version', 'v18.0');
+        $response = Http::get("https://graph.facebook.com/{$version}/me/accounts", [
+            'access_token' => $userToken,
+            'fields' => 'id,name,access_token,category,fan_count'
+        ]);
+
+        if ($response->successful()) {
+            return $response->json()['data'] ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * Filters pages for Instagram Business Accounts and fetches their details.
+     */
+    private function getInstagramBusinessAccounts(array $pages, $userToken)
+    {
+        $instagramPages = [];
+        $version = config('services.facebook.graph_version', 'v18.0');
+
+        foreach ($pages as $page) {
+            $response = Http::get("https://graph.facebook.com/{$version}/{$page['id']}", [
+                'access_token' => $userToken,
+                'fields' => 'instagram_business_account'
+            ]);
+
+            if (!$response->successful()) {
+                continue;
+            }
+
+            $pageData = $response->json();
+            if (!isset($pageData['instagram_business_account'])) {
+                continue;
+            }
+
+            $instagramAccountId = $pageData['instagram_business_account']['id'];
+            $instagramAccountDetails = $this->getInstagramAccountDetails($instagramAccountId, $page['access_token']);
+
+            if ($instagramAccountDetails) {
+                $instagramPages[] = array_merge($page, [
+                    'instagram_business_account_id' => $instagramAccountId,
+                    'instagram_username' => $instagramAccountDetails['username'] ?? $page['name'],
+                    'instagram_name' => $instagramAccountDetails['name'] ?? $page['name'],
+                    'instagram_followers_count' => $instagramAccountDetails['followers_count'] ?? 0,
+                    'instagram_media_count' => $instagramAccountDetails['media_count'] ?? 0,
+                    'instagram_profile_picture_url' => $instagramAccountDetails['profile_picture_url'] ?? null
+                ]);
+            }
+        }
+
+        return $instagramPages;
+    }
+
+    /**
+     * Fetches details for a given Instagram Business Account.
+     */
+    private function getInstagramAccountDetails($instagramAccountId, $pageToken)
+    {
+        $version = config('services.facebook.graph_version', 'v18.0');
+        $response = Http::get("https://graph.facebook.com/{$version}/{$instagramAccountId}", [
+            'access_token' => $pageToken,
+            'fields' => 'id,username,name,profile_picture_url,followers_count,media_count'
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        return null;
+    }
+
 
     /**
      * Connect a specific page to the profile
@@ -233,7 +269,6 @@ class OAuthController extends Controller
         try {
             $validated = $request->validate([
                 'platform' => 'required|string|in:facebook,instagram',
-                'page_id' => 'required|string',
                 'page_name' => 'required|string',
                 'page_access_token' => 'required|string',
                 'user_token' => 'required|string',
@@ -241,60 +276,80 @@ class OAuthController extends Controller
                 'instagram_username' => 'nullable|string'
             ]);
 
-            // Use the profile from the URL parameter instead of request body
+            // Use the profile from the URL parameter
             $profileId = $profile->id;
 
-            // Determine the account name and access token based on platform
+            // Get user information from Facebook API using the user-level token
+            $userInfo = $this->getFacebookUserInfo($validated['user_token']);
+
+            // Determine the account name and access token based on the selected page and platform
             $accountName = $validated['page_name'];
             $accessToken = $validated['page_access_token'];
 
-            if ($validated['platform'] === 'facebook') {
-                // For Facebook: use page name and page access token
-                $accountName = $validated['page_name']; // "Postify"
-                $accessToken = $validated['page_access_token'];
-            } 
-            elseif ($validated['platform'] === 'instagram') {
-                // For Instagram: use Instagram username and page access token
+            if ($validated['platform'] === 'instagram') {
+                // For Instagram, the account name should be the Instagram username if available
                 if (isset($validated['instagram_username'])) {
-                    $accountName = $validated['instagram_username']; // "postify16"
-                    $accessToken = $validated['page_access_token']; // This token works for Instagram Business
+                    $accountName = $validated['instagram_username'];
                 } else {
-                    throw new \Exception('Instagram username is required for Instagram platform');
+                    // This case might occur if the username wasn't fetched, fallback to page name
+                    Log::warning('Instagram username not provided for connectPage, falling back to page name.');
                 }
             }
 
-            // Check if social account already exists for this page/account
+            // Prepare social account data
+            $socialAccountData = [
+                'platform' => $validated['platform'],
+                'account_name' => $accountName,
+                'access_token' => $accessToken,
+                'social_id' => $userInfo['id'] ?? null,
+                'email' => $userInfo['email'] ?? null,
+                'avatar' => $userInfo['picture']['data']['url'] ?? null
+            ];
+
+            // Check if a social account already exists for this page/account under the given profile
             $existingAccount = $profile->socialAccounts()
                 ->where('platform', $validated['platform'])
                 ->where('account_name', $accountName)
                 ->first();
 
             if ($existingAccount) {
-                // Update existing account
-                $existingAccount->update([
-                    'access_token' => $accessToken
-                ]);
+                // Update existing account with all user info
+                $existingAccount->update($socialAccountData);
 
                 return response()->json([
                     'status' => 'success',
                     'message' => ucfirst($validated['platform']) . ' account updated successfully',
-                    'data' => $existingAccount
+                    'data' => [
+                        'id' => $existingAccount->id,
+                        'profile_id' => $existingAccount->profile_id,
+                        'platform' => $existingAccount->platform,
+                        'account_name' => $existingAccount->account_name,
+                        'access_token' => $existingAccount->access_token,
+                        'avatar' => $existingAccount->avatar,
+                        'email' => $existingAccount->email,
+                        'social_id' => $existingAccount->social_id,
+                        'refresh_token' => $existingAccount->refresh_token,
+                        'expires_at' => $existingAccount->expires_at,
+                        'created_at' => $existingAccount->created_at,
+                        'updated_at' => $existingAccount->updated_at
+                    ]
                 ]);
             }
 
-            // Create new social account
-            $socialAccount = $profile->socialAccounts()->create([
-                'platform' => $validated['platform'],
-                'account_name' => $accountName,
-                'access_token' => $accessToken
-            ]);
+            // Create new social account with all user info
+            $socialAccount = $profile->socialAccounts()->create($socialAccountData);
 
             return response()->json([
                 'status' => 'success',
                 'message' => ucfirst($validated['platform']) . ' account connected successfully',
-                'data' => $socialAccount
+                'data' => $socialAccount->fresh() // Return the full, fresh model data
             ]);
-
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to connect page:', ['error' => $e->getMessage()]);
 
@@ -310,7 +365,7 @@ class OAuthController extends Controller
     {
         // Use the EXACT same state as the working manual URL
         $state = 'test_500';
-        
+
         $url = "https://www.linkedin.com/oauth/v2/authorization?" . http_build_query([
             'response_type' => 'code',
             'client_id' => config('services.linkedin.client_id'),
@@ -385,7 +440,6 @@ class OAuthController extends Controller
                     'user_info' => $userData
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('LinkedIn error:', ['error' => $e->getMessage()]);
             return response()->json([
@@ -394,4 +448,50 @@ class OAuthController extends Controller
             ], 500);
         }
     }
-} 
+
+    /**
+     * Get user information from Facebook API
+     */
+    private function getFacebookUserInfo($userToken)
+    {
+        $response = Http::get('https://graph.facebook.com/v18.0/me', [
+            'access_token' => $userToken,
+            'fields' => 'id,name,email,picture.type(large)'
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        return [];
+    }
+
+    /**
+     * Retrieve OAuth callback data for the frontend
+     */
+    public function getOAuthCallbackData(Request $request)
+    {
+        $sessionKey = $request->get('session_key');
+
+        if (!$sessionKey) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session key is required'
+            ], 400);
+        }
+
+        $callbackData = cache()->get($sessionKey);
+
+        if (!$callbackData) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'OAuth session expired or invalid'
+            ], 404);
+        }
+
+        // Remove the data from cache after retrieving it (one-time use)
+        cache()->forget($sessionKey);
+
+        return response()->json($callbackData);
+    }
+}
