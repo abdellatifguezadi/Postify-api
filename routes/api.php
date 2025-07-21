@@ -17,9 +17,6 @@ use App\Http\Controllers\Api\TeamController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Facebook OAuth callback (public route)
-Route::get('/facebook/callback', [OAuthController::class, 'handleFacebookCallback']);
-
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
